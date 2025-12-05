@@ -151,6 +151,32 @@ pnpm start
 # 或 docker build -t lunatv-proxy:latest .
 ```
 
+
+## 发布预编译 Docker 包
+
+硬件较好的机器可以先完成构建，再把打包好的镜像上传到 GitHub Release，弱机只需下载运行：
+
+1. 构建镜像：
+   ```bash
+   docker build -t lunatv-proxy:latest .
+   ```
+2. 使用脚本导出 gzip 包（默认输出到 `dist/lunatv-proxy-prebuilt.tar.gz`）：
+   ```bash
+   ./scripts/export-docker-image.sh
+   # 或自定义输出路径
+   ./scripts/export-docker-image.sh lunatv-proxy:latest dist/lunatv-proxy-v0.1.0.tar.gz
+   ```
+3. 把生成的 `.tar.gz` 上传到 GitHub Releases，供客户下载。
+
+客户端机器无需 `pnpm build`，只需加载压缩包并按 README 的运行命令启动：
+
+```bash
+wget https://github.com/<owner>/<repo>/releases/download/<tag>/lunatv-proxy-prebuilt.tar.gz
+docker load -i lunatv-proxy-prebuilt.tar.gz
+# 然后复用上文的 docker run 命令
+docker run -d ... lunatv-proxy:latest
+```
+
 ---
 
 ## 常见问题
