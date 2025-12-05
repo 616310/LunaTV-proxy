@@ -168,10 +168,10 @@ pnpm start
    ```
 3. 把生成的 `.tar.gz` 上传到 GitHub Releases，供客户下载。
 
-客户端机器无需 `pnpm build`，只需加载压缩包并按 README 的运行命令启动：
+客户端机器无需 `pnpm build`，只需从本仓库 [Releases](https://github.com/616310/LunaTV-proxy/releases) 下载 `.tar.gz` 并加载镜像：
 
 ```bash
-wget https://github.com/<owner>/<repo>/releases/download/<tag>/lunatv-proxy-prebuilt.tar.gz
+wget https://github.com/616310/LunaTV-proxy/releases/download/<tag>/lunatv-proxy-prebuilt.tar.gz
 docker load -i lunatv-proxy-prebuilt.tar.gz
 # 然后复用上文的 docker run 命令
 docker run -d ... lunatv-proxy:latest
