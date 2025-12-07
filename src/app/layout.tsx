@@ -80,6 +80,11 @@ export default async function RootLayout({
   }
 
   // 将运行时配置注入到全局 window 对象，供客户端在运行时读取
+  const authDisabledFlag =
+    (process.env.NEXT_PUBLIC_AUTH_DISABLED || '').toLowerCase();
+  const isAuthDisabled =
+    authDisabledFlag === 'true' || authDisabledFlag === '1';
+
   const runtimeConfig = {
     STORAGE_TYPE: process.env.NEXT_PUBLIC_STORAGE_TYPE || 'localstorage',
     DOUBAN_PROXY_TYPE: doubanProxyType,
@@ -89,6 +94,8 @@ export default async function RootLayout({
     DISABLE_YELLOW_FILTER: disableYellowFilter,
     CUSTOM_CATEGORIES: customCategories,
     FLUID_SEARCH: fluidSearch,
+    AUTH_DISABLED: isAuthDisabled,
+    OWNER_USERNAME: process.env.USERNAME || 'owner',
   };
 
   return (

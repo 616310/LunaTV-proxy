@@ -88,6 +88,38 @@ docker run -d \
 
 > 说明：`--dns=223.5.5.5` 等参数可以绕过部分 DNSSEC 故障域名（例如某些 CDN）。如有需要可改成你信任的解析器。
 
+### 3. 非 Docker 安装运行
+
+适合想在裸机/已有 Node.js 环境下运行的场景：
+
+```bash
+# 1) 安装依赖
+sudo apt update
+sudo apt install -y curl ca-certificates redis-server
+sudo corepack enable && sudo corepack prepare pnpm@latest --activate
+
+# 2) 拉取代码并安装依赖
+git clone https://github.com/616310/LunaTV-proxy.git
+cd LunaTV-proxy
+pnpm install
+
+# 3) 构建
+NEXT_PUBLIC_STORAGE_TYPE=redis \
+REDIS_URL=redis://127.0.0.1:6379 \
+USERNAME=admin \
+PASSWORD=strong_password \
+pnpm build
+
+# 4) 启动（可写 systemd 服务保证守护）
+HOSTNAME=:: PORT=3100 NODE_ENV=production \
+USERNAME=admin PASSWORD=strong_password \
+NEXT_PUBLIC_STORAGE_TYPE=redis REDIS_URL=redis://127.0.0.1:6379 \
+DEFAULT_CONFIG_FILE=config/default-config.base58 \
+pnpm start
+```
+
+若打算取消登录校验，可追加 `NEXT_PUBLIC_AUTH_DISABLED=true`。如不使用 Redis，可将 `NEXT_PUBLIC_STORAGE_TYPE` 改为 `kvrocks` 并设置 `KVROCKS_URL`。
+
 ---
 
 ## 环境变量
@@ -105,8 +137,11 @@ docker run -d \
 | `NEXT_PUBLIC_SEARCH_MAX_PAGE` | 每个源搜索最多拉取的页数 | 5 |
 | `NEXT_PUBLIC_DOUBAN_*` | 豆瓣数据/图片代理设置 | 见 `.env.example` |
 | `NEXT_PUBLIC_FLUID_SEARCH` | 是否启用流式搜索结果 | true |
+| `NEXT_PUBLIC_AUTH_DISABLED` | 设为 `true` / `1` 可关闭登录校验（所有访问者视为管理员） | false |
 
 更多变量可参考 `README` 中的表格或 `.env.local` 示例。
+
+> 若关闭登录校验，仍建议保留 `USERNAME` 用于区分数据存储用户；密码可留空。
 
 ---
 

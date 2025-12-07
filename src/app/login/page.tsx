@@ -12,6 +12,10 @@ import { checkForUpdates, UpdateStatus } from '@/lib/version_check';
 import { useSite } from '@/components/SiteProvider';
 import { ThemeToggle } from '@/components/ThemeToggle';
 
+const rawAuthDisabled =
+  (process.env.NEXT_PUBLIC_AUTH_DISABLED || '').toLowerCase();
+const AUTH_DISABLED = rawAuthDisabled === 'true' || rawAuthDisabled === '1';
+
 // 版本显示组件
 function VersionDisplay() {
   const [updateStatus, setUpdateStatus] = useState<UpdateStatus | null>(null);
@@ -78,6 +82,12 @@ function LoginPageClient() {
 
   const { siteName } = useSite();
 
+  useEffect(() => {
+    if (!AUTH_DISABLED) return;
+    const redirect = searchParams.get('redirect') || '/';
+    router.replace(redirect);
+  }, [router, searchParams]);
+
   // 在客户端挂载后设置配置
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -120,6 +130,17 @@ function LoginPageClient() {
   };
 
 
+
+  if (AUTH_DISABLED) {
+    return (
+      <div className='relative min-h-screen flex items-center justify-center px-4'>
+        <div className='text-center space-y-4'>
+          <h1 className='text-2xl font-semibold text-green-600'>已取消登录验证</h1>
+          <p className='text-gray-600 dark:text-gray-400'>正在为你跳转到主页...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className='relative min-h-screen flex items-center justify-center px-4 overflow-hidden'>

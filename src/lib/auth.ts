@@ -1,16 +1,65 @@
 import { NextRequest } from 'next/server';
 
+const authDisabledFlag =
+  (process.env.NEXT_PUBLIC_AUTH_DISABLED ||
+    process.env.AUTH_DISABLED ||
+    ''
+  ).toLowerCase();
+const AUTH_DISABLED =
+  authDisabledFlag === 'true' || authDisabledFlag === '1';
+
+function getServerOwnerUsername(): string {
+  return process.env.USERNAME || 'owner';
+}
+
+function getClientOwnerUsername(): string {
+  if (typeof window !== 'undefined') {
+    return (
+      (window as any).RUNTIME_CONFIG?.OWNER_USERNAME ||
+      (window as any).RUNTIME_CONFIG?.SITE_OWNER ||
+      'owner'
+    );
+  }
+
+  return (
+    process.env.NEXT_PUBLIC_OWNER_USERNAME ||
+    process.env.NEXT_PUBLIC_DEFAULT_USER ||
+    'owner'
+  );
+}
+
+function buildPublicAuthInfo(
+  username: string
+): {
+  password?: string;
+  username?: string;
+  signature?: string;
+  timestamp?: number;
+  role?: 'owner' | 'admin' | 'user';
+} {
+  return {
+    username,
+    role: 'owner',
+    timestamp: Date.now(),
+  };
+}
+
+export function isAuthDisabled(): boolean {
+  return AUTH_DISABLED;
+}
+
 // 从cookie获取认证信息 (服务端使用)
 export function getAuthInfoFromCookie(request: NextRequest): {
   password?: string;
   username?: string;
   signature?: string;
   timestamp?: number;
+  role?: 'owner' | 'admin' | 'user';
 } | null {
   const authCookie = request.cookies.get('auth');
 
   if (!authCookie) {
-    return null;
+    return AUTH_DISABLED ? buildPublicAuthInfo(getServerOwnerUsername()) : null;
   }
 
   try {
@@ -18,6 +67,9 @@ export function getAuthInfoFromCookie(request: NextRequest): {
     const authData = JSON.parse(decoded);
     return authData;
   } catch (error) {
+    if (AUTH_DISABLED) {
+      return buildPublicAuthInfo(getServerOwnerUsername());
+    }
     return null;
   }
 }
@@ -53,7 +105,9 @@ export function getAuthInfoFromBrowserCookie(): {
 
     const authCookie = cookies['auth'];
     if (!authCookie) {
-      return null;
+      return AUTH_DISABLED
+        ? buildPublicAuthInfo(getClientOwnerUsername())
+        : null;
     }
 
     // 处理可能的双重编码
@@ -67,6 +121,9 @@ export function getAuthInfoFromBrowserCookie(): {
     const authData = JSON.parse(decoded);
     return authData;
   } catch (error) {
+    if (AUTH_DISABLED) {
+      return buildPublicAuthInfo(getClientOwnerUsername());
+    }
     return null;
   }
 }

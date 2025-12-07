@@ -2,13 +2,17 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 
-import { getAuthInfoFromCookie } from '@/lib/auth';
+import { getAuthInfoFromCookie, isAuthDisabled } from '@/lib/auth';
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // 跳过不需要认证的路径
   if (shouldSkipAuth(pathname)) {
+    return NextResponse.next();
+  }
+
+  if (isAuthDisabled()) {
     return NextResponse.next();
   }
 

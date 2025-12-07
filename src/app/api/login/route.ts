@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 
 import { getConfig } from '@/lib/config';
 import { db } from '@/lib/db';
+import { isAuthDisabled } from '@/lib/auth';
 
 export const runtime = 'nodejs';
 
@@ -69,6 +70,10 @@ async function generateAuthCookie(
 
 export async function POST(req: NextRequest) {
   try {
+    if (isAuthDisabled()) {
+      return NextResponse.json({ ok: true, authDisabled: true });
+    }
+
     // 本地 / localStorage 模式——仅校验固定密码
     if (STORAGE_TYPE === 'localstorage') {
       const envPassword = process.env.PASSWORD;
