@@ -4,6 +4,10 @@
 
 - 新增环境变量 `NEXT_PUBLIC_AUTH_DISABLED`，可选择性关闭登录验证让站点对所有访客开放
 
+### Changed
+
+- 移除 Docker 相关部署脚本与文档，改为提供 standalone 预编译包，并新增 `scripts/export-standalone-bundle.sh` 辅助打包
+
 ## [100.0.3] - 2025-10-27
 
 ### Fixed

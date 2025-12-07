@@ -8,7 +8,7 @@
 
 - **全量流量代理**：所有接口、m3u8、key、ts 片段都会先进入你的服务器，再转发到上游，终端设备只会看到你自己的域名/IP。
 - **默认订阅即插即用**：内置 [vodtv/api](https://github.com/vodtv/api) 的 Base58 源（精简无 18+），首次启动自动导入，也支持覆盖/热更新。
-- **Docker 一键部署**：镜像里自带健康检查、manifest 生成脚本，配合 Kvrocks/Redis 即可上线。
+- **预编译包开箱即用**：维护者提供 standalone 预编译包，用户下载解压即可运行，无需本地编译或 Docker。
 
 > ⚠️ 声明：本项目仅供个人学习、研究。请勿在公共平台宣传，勿用于任何商业或盈利活动，由此产生的法律风险与作者无关。
 
@@ -35,7 +35,7 @@
 | 默认源 | `config/default-config.base58` 中嵌入 VodTV 精简源，第一次登录后台即可看到完整站点列表，也可通过后台覆盖/自定义。 |
 | 多端同步 | 兼容 Kvrocks/Redis/Upstash，浏览记录、收藏、搜索历史都可共享。 |
 | PWA 与响应式 | 内置移动端导航、桌面侧栏和 PWA Manifest，适配手机、平板、TV 浏览器。 |
-| Docker 友好 | 官方 Dockerfile 使用 `next build` 产出的 standalone 目录，部署体积更小，支持健康检查与定时任务。 |
+| 预编译发布 | 官方 Release 提供 `standalone` 产物，下载解压即可 `node server.js` 运行。 |
 
 ---
 
@@ -57,68 +57,35 @@ Browser ⇄ LunaTV Proxy (Next.js)
 
 ## 快速开始
 
-### 1. 准备 Kvrocks/Redis
+### 1. 准备 Redis/Kvrocks
 
 ```bash
-docker network create lunatv-proxy-net
-
-docker run -d \
-  --name lunatv-proxy-kvrocks \
-  --network lunatv-proxy-net \
-  apache/kvrocks
-```
-
-### 2. 启动 LunaTV Proxy
-
-```bash
-docker run -d \
-  --name lunatv-proxy \
-  --network lunatv-proxy-net \
-  --dns=223.5.5.5 --dns=114.114.114.114 \
-  -p 3100:3000 \
-  -e USERNAME=admin \
-  -e PASSWORD=strong_password \
-  -e NEXT_PUBLIC_STORAGE_TYPE=kvrocks \
-  -e KVROCKS_URL=redis://lunatv-proxy-kvrocks:6666 \
-  -e DEFAULT_CONFIG_FILE=/app/config/default-config.base58 \
-  lunatv-proxy:latest
-```
-
-首启后访问 `http://服务器IP:3100/`，用 `USERNAME/PASSWORD` 登录即可看到后台与影视源。
-
-> 说明：`--dns=223.5.5.5` 等参数可以绕过部分 DNSSEC 故障域名（例如某些 CDN）。如有需要可改成你信任的解析器。
-
-### 3. 非 Docker 安装运行
-
-适合想在裸机/已有 Node.js 环境下运行的场景：
-
-```bash
-# 1) 安装依赖
 sudo apt update
-sudo apt install -y curl ca-certificates redis-server
-sudo corepack enable && sudo corepack prepare pnpm@latest --activate
+sudo apt install -y redis-server  # 或者自行部署 Kvrocks
+```
 
-# 2) 拉取代码并安装依赖
-git clone https://github.com/616310/LunaTV-proxy.git
-cd LunaTV-proxy
-pnpm install
+### 2. 下载预编译 standalone 包
 
-# 3) 构建
-NEXT_PUBLIC_STORAGE_TYPE=redis \
-REDIS_URL=redis://127.0.0.1:6379 \
-USERNAME=admin \
-PASSWORD=strong_password \
-pnpm build
+到 [Releases](https://github.com/616310/LunaTV-proxy/releases) 下载最新的 `lunatv-proxy-standalone.tar.gz`，并解压到目标目录：
 
-# 4) 启动（可写 systemd 服务保证守护）
+```bash
+mkdir -p /opt/lunatv-proxy
+tar -xzvf lunatv-proxy-standalone.tar.gz -C /opt/lunatv-proxy
+cd /opt/lunatv-proxy
+```
+
+### 3. 配置并启动
+
+```bash
 HOSTNAME=:: PORT=3100 NODE_ENV=production \
 USERNAME=admin PASSWORD=strong_password \
-NEXT_PUBLIC_STORAGE_TYPE=redis REDIS_URL=redis://127.0.0.1:6379 \
+NEXT_PUBLIC_STORAGE_TYPE=redis \
+REDIS_URL=redis://127.0.0.1:6379 \
 DEFAULT_CONFIG_FILE=config/default-config.base58 \
-pnpm start
+node server.js
 ```
 
-若打算取消登录校验，可追加 `NEXT_PUBLIC_AUTH_DISABLED=true`。如不使用 Redis，可将 `NEXT_PUBLIC_STORAGE_TYPE` 改为 `kvrocks` 并设置 `KVROCKS_URL`。
+可选择把上述环境变量写入 systemd 或 Supervisor 服务。若想公开访问无需登录，可再加 `NEXT_PUBLIC_AUTH_DISABLED=true`。
 
 ---
 
@@ -187,30 +154,19 @@ pnpm start
 ```
 
 
-## 发布预编译 Docker 包
+## 发布 standalone 预编译包
 
-硬件较好的机器可以先完成构建，再把打包好的镜像上传到 GitHub Release，弱机只需下载运行：
-
-1. 构建镜像：
-   ```bash
-   docker build -t lunatv-proxy:latest .
-   ```
-2. 使用脚本导出 gzip 包（默认输出到 `dist/lunatv-proxy-prebuilt.tar.gz`）：
-   ```bash
-   ./scripts/export-docker-image.sh
-   # 或自定义输出路径
-   ./scripts/export-docker-image.sh lunatv-proxy:latest dist/lunatv-proxy-v0.1.0.tar.gz
-   ```
-3. 把生成的 `.tar.gz` 上传到 GitHub Releases，供客户下载。
-
-客户端机器无需 `pnpm build`，只需从本仓库 [Releases](https://github.com/616310/LunaTV-proxy/releases) 下载 `.tar.gz` 并加载镜像：
+维护者可以在性能较好的机器上构建一次，再把产物上传至 Release，用户即可下载运行：
 
 ```bash
-wget https://github.com/616310/LunaTV-proxy/releases/download/<tag>/lunatv-proxy-prebuilt.tar.gz
-docker load -i lunatv-proxy-prebuilt.tar.gz
-# 然后复用上文的 docker run 命令
-docker run -d ... lunatv-proxy:latest
+# 1) 进入仓库，执行脚本
+./scripts/export-standalone-bundle.sh
+# 默认输出 dist/lunatv-proxy-standalone.tar.gz，可在第一个参数里自定义文件名
+
+# 2) 上传 dist/*.tar.gz 至 GitHub Releases
 ```
+
+客户端无需 `pnpm build`，只需要下载 `.tar.gz`、解压并执行 `node server.js`（详见“快速开始”）。
 
 ---
 
