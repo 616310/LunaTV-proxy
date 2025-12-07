@@ -114,7 +114,7 @@ export async function GET(request: NextRequest) {
         'content-type',
         'application/vnd.apple.mpegurl; charset=utf-8'
       );
-      headers.set('cache-control', 'private, max-age=5');
+      headers.set('cache-control', 'public, max-age=31536000, immutable');
       return new NextResponse(rewritten, { headers });
     }
 
@@ -131,7 +131,7 @@ export async function GET(request: NextRequest) {
     if (contentRange) {
       headers.set('content-range', contentRange);
     }
-    headers.set('cache-control', 'private, max-age=5');
+    headers.set('cache-control', 'public, max-age=31536000, immutable');
     return new NextResponse(upstreamResponse.body, {
       status: upstreamResponse.status,
       headers,

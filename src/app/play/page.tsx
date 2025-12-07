@@ -6,7 +6,7 @@ import Artplayer from 'artplayer';
 import Hls from 'hls.js';
 import { Heart } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Suspense, useEffect, useRef, useState } from 'react';
+import { Suspense, useCallback, useEffect, useRef, useState } from 'react';
 
 import {
   deleteFavorite,
@@ -1227,6 +1227,31 @@ function PlayPageClient() {
     }
   };
 
+  const downloadCurrentEpisode = useCallback(() => {
+    if (!videoUrl || typeof window === 'undefined') {
+      artPlayerRef.current?.notice?.show?.('暂无可下载的视频');
+      return;
+    }
+
+    try {
+      const downloadUrl = new URL('/api/download', window.location.origin);
+      downloadUrl.searchParams.set('url', videoUrl);
+      const episodeIndex =
+        (currentEpisodeIndexRef.current ?? currentEpisodeIndex ?? 0) + 1;
+      const rawName =
+        videoTitleRef.current || detailRef.current?.title || 'lunatv';
+      const safeName = `${rawName}-E${episodeIndex}`.replace(
+        /[\\/:*?"<>|]/g,
+        '_'
+      );
+      downloadUrl.searchParams.set('filename', safeName);
+      window.open(downloadUrl.toString(), '_blank', 'noopener');
+    } catch (err) {
+      console.error('生成下载链接失败:', err);
+      artPlayerRef.current?.notice?.show?.('下载链接生成失败');
+    }
+  }, [videoUrl, currentEpisodeIndex]);
+
   useEffect(() => {
     if (
       !Artplayer ||
@@ -1333,16 +1358,14 @@ function PlayPageClient() {
               video.hls.destroy();
             }
             const hls = new Hls({
-              debug: false, // 关闭日志
-              enableWorker: true, // WebWorker 解码，降低主线程压力
-              lowLatencyMode: true, // 开启低延迟 LL-HLS
-
-              /* 缓冲/内存相关 */
-              maxBufferLength: 30, // 前向缓冲最大 30s，过大容易导致高延迟
-              backBufferLength: 30, // 仅保留 30s 已播放内容，避免内存占用
-              maxBufferSize: 60 * 1000 * 1000, // 约 60MB，超出后触发清理
-
-              /* 自定义loader */
+              debug: false,
+              enableWorker: true,
+              lowLatencyMode: false,
+              startFragPrefetch: true,
+              maxBufferLength: 600,
+              maxMaxBufferLength: 1200,
+              backBufferLength: 300,
+              maxBufferSize: 500 * 1000 * 1000,
               loader: blockAdEnabledRef.current
                 ? CustomHlsJsLoader
                 : Hls.DefaultConfig.loader,
@@ -1477,6 +1500,15 @@ function PlayPageClient() {
         ],
         // 控制栏配置
         controls: [
+          {
+            position: 'right',
+            index: 12,
+            html: '<i class="art-icon flex"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg></i>',
+            tooltip: '下载当前视频',
+            click: function () {
+              downloadCurrentEpisode();
+            },
+          },
           {
             position: 'left',
             index: 13,
@@ -1652,7 +1684,7 @@ function PlayPageClient() {
       console.error('创建播放器失败:', err);
       setError('播放器初始化失败');
     }
-  }, [Artplayer, Hls, videoUrl, loading, blockAdEnabled]);
+  }, [Artplayer, Hls, videoUrl, loading, blockAdEnabled, downloadCurrentEpisode]);
 
   // 当组件卸载时清理定时器、Wake Lock 和播放器资源
   useEffect(() => {

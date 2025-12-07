@@ -36,6 +36,7 @@
 | 多端同步 | 兼容 Kvrocks/Redis/Upstash，浏览记录、收藏、搜索历史都可共享。 |
 | PWA 与响应式 | 内置移动端导航、桌面侧栏和 PWA Manifest，适配手机、平板、TV 浏览器。 |
 | 预编译发布 | 官方 Release 提供 `standalone` 产物，下载解压即可 `node server.js` 运行。 |
+| 极速缓存与下载 | 播放器启用大缓冲策略，并内置“下载”按钮，支持通过 `/api/download` 全速拉取整集视频。 |
 
 ---
 
@@ -127,6 +128,10 @@ node server.js
    - `src/lib/downstream.ts` 在解析 `vod_play_url` 时会调用 `wrapEpisodesWithProxy`。  
    - `/api/proxy` 会判断 `type=manifest` 或 `segment`，对 m3u8 做二次改写，并透传 Range、Referer、Origin。  
    - 如果你想进一步限制上游域名，可在 `src/app/api/proxy/route.ts` 的 `ALLOWED_PROTOCOLS`/白名单里自行扩展。
+
+4. **下载功能**
+   - 播放器控制栏新增“下载”按钮，点击即可通过服务器全速获取整集内容（默认导出为 `.ts`）。
+   - 也可直接访问 `/api/download?url=<播放地址>&filename=<自定义名称>`，支持既有的 `/api/proxy` 地址或裸源链接。
 
 ---
 

@@ -3,10 +3,12 @@
 ### Added
 
 - 新增环境变量 `NEXT_PUBLIC_AUTH_DISABLED`，可选择性关闭登录验证让站点对所有访客开放
+- 新增 `/api/download` 接口与播放器“下载”按钮，可将整集内容以高带宽方式导出
 
 ### Changed
 
 - 移除 Docker 相关部署脚本与文档，改为提供 standalone 预编译包，并新增 `scripts/export-standalone-bundle.sh` 辅助打包
+- HLS 播放策略改为大缓冲优先，并放宽代理层缓存头，让在线播放和下载都更顺畅
 
 ## [100.0.3] - 2025-10-27
 
