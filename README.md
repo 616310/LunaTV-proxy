@@ -81,6 +81,7 @@ HOSTNAME=:: PORT=3100 NODE_ENV=production \
 USERNAME=admin PASSWORD=strong_password \
 NEXT_PUBLIC_STORAGE_TYPE=redis \
 REDIS_URL=redis://127.0.0.1:6379 \
+KVROCKS_URL=redis://127.0.0.1:6379 \
 DEFAULT_CONFIG_FILE=config/default-config.base58 \
 node server.js
 ```
