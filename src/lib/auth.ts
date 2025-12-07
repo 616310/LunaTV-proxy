@@ -1,5 +1,12 @@
 import { NextRequest } from 'next/server';
 
+type RuntimeConfigWindow = Window & {
+  RUNTIME_CONFIG?: {
+    OWNER_USERNAME?: string;
+    SITE_OWNER?: string;
+  };
+};
+
 const authDisabledFlag =
   (process.env.NEXT_PUBLIC_AUTH_DISABLED ||
     process.env.AUTH_DISABLED ||
@@ -14,9 +21,10 @@ function getServerOwnerUsername(): string {
 
 function getClientOwnerUsername(): string {
   if (typeof window !== 'undefined') {
+    const runtimeWindow = window as RuntimeConfigWindow;
     return (
-      (window as any).RUNTIME_CONFIG?.OWNER_USERNAME ||
-      (window as any).RUNTIME_CONFIG?.SITE_OWNER ||
+      runtimeWindow.RUNTIME_CONFIG?.OWNER_USERNAME ||
+      runtimeWindow.RUNTIME_CONFIG?.SITE_OWNER ||
       'owner'
     );
   }

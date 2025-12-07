@@ -10,6 +10,32 @@ export const dynamic = 'force-dynamic';
 
 const ALLOWED_PROTOCOLS = ['http:', 'https:'];
 
+function normalizeNestedUrl(raw: string | null): string | null {
+  if (!raw) return null;
+  let current = raw.trim();
+  if (!current) return null;
+
+  const isHttp = (value: string) =>
+    value.startsWith('http://') || value.startsWith('https://');
+
+  for (let i = 0; i < 3; i += 1) {
+    if (isHttp(current)) {
+      return current;
+    }
+    try {
+      const decoded = decodeURIComponent(current);
+      if (decoded === current) {
+        break;
+      }
+      current = decoded;
+    } catch {
+      break;
+    }
+  }
+
+  return isHttp(current) ? current : null;
+}
+
 function extractUpstreamUrl(
   raw: string,
   request: NextRequest
@@ -25,7 +51,11 @@ function extractUpstreamUrl(
       absolute.pathname.startsWith(proxyPath) &&
       absolute.searchParams.has('url')
     ) {
-      return new URL(absolute.searchParams.get('url') as string);
+      const resolved = normalizeNestedUrl(absolute.searchParams.get('url'));
+      if (!resolved) {
+        return null;
+      }
+      return new URL(resolved);
     }
     return absolute;
   } catch {
@@ -131,9 +161,13 @@ function streamSegments(
           }
 
           const reader = response.body.getReader();
-          while (true) {
+          let isReaderDone = false;
+          while (!isReaderDone) {
             const chunk = await reader.read();
-            if (chunk.done) break;
+            if (chunk.done) {
+              isReaderDone = true;
+              break;
+            }
             if (request.signal.aborted) {
               controller.error(new DOMException('Aborted', 'AbortError'));
               response.body.cancel();
@@ -156,7 +190,10 @@ function streamSegments(
 
 function buildDisposition(filename: string, extension: string) {
   const base = filename || 'lunatv';
-  const asciiFallback = base.replace(/[^\x00-\x7F]/g, '_') || 'lunatv';
+  const asciiFallback =
+    Array.from(base)
+      .map((char) => (char.charCodeAt(0) <= 0x7f ? char : '_'))
+      .join('') || 'lunatv';
   const encoded = encodeURIComponent(base);
   const normalizedExt = extension.startsWith('.') ? extension : `.${extension}`;
   return `attachment; filename="${asciiFallback}${normalizedExt}"; filename*=UTF-8''${encoded}${normalizedExt}`;
