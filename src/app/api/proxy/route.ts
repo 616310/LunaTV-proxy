@@ -2,6 +2,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 
+import { fetchWithDispatcher } from '@/lib/http-client';
 import { buildProxyUrl } from '@/lib/proxy-utils';
 
 export const runtime = 'nodejs';
@@ -89,9 +90,12 @@ export async function GET(request: NextRequest) {
     | 'manifest';
 
   try {
-    const upstreamResponse = await fetch(upstreamUrl.toString(), {
-      headers: pickHeaders(request, upstreamUrl),
-    });
+    const upstreamResponse = await fetchWithDispatcher(
+      upstreamUrl.toString(),
+      {
+        headers: pickHeaders(request, upstreamUrl),
+      }
+    );
 
     if (!upstreamResponse.ok) {
       if (type === 'segment') {

@@ -12,6 +12,7 @@ const nextConfig = {
 
   experimental: {
     instrumentationHook: process.env.NODE_ENV === 'production',
+    serverComponentsExternalPackages: ['undici'],
   },
 
   // Uncoment to add domain whitelist
